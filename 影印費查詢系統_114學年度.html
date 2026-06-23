@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>114學年度影印費查詢系統</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#1f2937;--muted:#6b7280;--main:#2563eb;--ok:#16a34a;--warn:#dc2626;--line:#e5e7eb}
+*{box-sizing:border-box} body{margin:0;font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;background:linear-gradient(160deg,#eef5ff,#fff 45%,#f8fafc);color:var(--ink)}
+.wrap{max-width:980px;margin:0 auto;padding:28px 16px 60px}.hero{display:flex;gap:16px;justify-content:space-between;align-items:center;margin-bottom:18px}.title{font-size:clamp(25px,4vw,38px);font-weight:900;margin:0}.sub{color:var(--muted);margin:8px 0 0}.card{background:rgba(255,255,255,.92);border:1px solid var(--line);box-shadow:0 18px 55px rgba(15,23,42,.08);border-radius:24px;padding:22px;margin:16px 0}.row{display:flex;gap:12px;flex-wrap:wrap}.input{flex:1;min-width:230px;padding:14px 16px;border:1px solid #d1d5db;border-radius:14px;font-size:18px}.btn{border:0;border-radius:14px;padding:13px 18px;font-weight:800;cursor:pointer;background:var(--main);color:#fff;font-size:16px}.btn.secondary{background:#111827}.btn.light{background:#eef2ff;color:#1e40af}.btn.ok{background:var(--ok)}.btn.danger{background:var(--warn)}.result{display:none}.bigFee{font-size:42px;font-weight:950;margin:8px 0}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-weight:800;font-size:14px}.paid{background:#dcfce7;color:#166534}.unpaid{background:#fee2e2;color:#991b1b}.receipt{background:#e0f2fe;color:#075985}.muted{color:var(--muted)}.checkbox{display:flex;align-items:center;gap:10px;font-size:18px;margin-top:15px}.checkbox input{width:22px;height:22px}.admin{display:none}.adminTop{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:16px}table{width:100%;border-collapse:collapse;background:#fff}th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}th{background:#f8fafc;font-size:14px;color:#475569}tr:last-child td{border-bottom:0}.mini{font-size:13px;color:var(--muted)}.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111827;color:#fff;border-radius:999px;padding:12px 18px;display:none;box-shadow:0 10px 30px #0003}.links{display:flex;gap:8px;flex-wrap:wrap}.noPrint{ } @media print{.noPrint,.hero,.searchCard{display:none!important}.admin{display:block!important}.card{box-shadow:none;border:0}.wrap{max-width:none;padding:0}body{background:#fff}}
+</style></head><body><div class="wrap">
+<div class="hero"><div><h1 class="title">114學年度影印費查詢</h1><p class="sub">輸入班級或老師姓名，即可查詢金額、收據需求與繳費狀態。</p></div><button class="btn secondary noPrint" onclick="showAdminLogin()">後台</button></div>
+<div class="card searchCard"><h2>老師查詢</h2><div class="row"><input id="q" class="input" placeholder="例如：101、葉敏玲、科任" onkeydown="if(event.key==='Enter') search()"><button class="btn" onclick="search()">查詢</button></div><p class="mini">資料只會儲存在此瀏覽器中。若換電腦開啟，勾選紀錄不會同步。</p></div>
+<div id="result" class="card result"><h2 id="rName"></h2><div id="rClass" class="muted"></div><div class="bigFee" id="rFee"></div><div id="rStatus"></div><label class="checkbox"><input type="checkbox" id="rReceipt" onchange="saveReceipt()">需要收據</label><p class="mini">勾選後請按「儲存」，系統會開啟一封已填好的 Email，請老師按送出通知行政端。</p><div class="row"><button class="btn ok" onclick="saveReceipt()">儲存</button><button class="btn light" onclick="clearResult()">重新查詢</button></div></div>
+<div id="admin" class="card admin"><div class="adminTop"><div><h2>行政後台</h2><p class="mini">可確認繳費、查看需要收據名單。後台密碼：720</p></div><div class="links noPrint"><button class="btn light" onclick="renderAdmin('receipt')">只看收據</button><button class="btn light" onclick="renderAdmin('all')">全部名單</button><button class="btn light" onclick="emailReceiptList()">Email收據清單</button><button class="btn light" onclick="window.print()">列印</button><button class="btn danger" onclick="resetAll()">清除本機紀錄</button></div></div><div id="summary" class="row" style="margin:12px 0"></div><div class="tableWrap"><table><thead><tr><th>班級/帳戶</th><th>老師</th><th>影印費</th><th>繳費狀態</th><th>收據</th><th class="noPrint">操作</th></tr></thead><tbody id="tbody"></tbody></table></div></div>
+</div><div id="toast" class="toast"></div>
+<script>
+const seed = [{"id": "101葉敏玲", "className": "101", "teacher": "葉敏玲", "amount": 372.8, "paid": false, "receipt": false}, {"id": "102宋美櫻", "className": "102", "teacher": "宋美櫻", "amount": 285.4, "paid": false, "receipt": false}, {"id": "103杜姿儀", "className": "103", "teacher": "杜姿儀", "amount": 133.6, "paid": false, "receipt": false}, {"id": "104鄭惠憶", "className": "104", "teacher": "鄭惠憶", "amount": 325.4, "paid": false, "receipt": false}, {"id": "201蔡玲瑛", "className": "201", "teacher": "蔡玲瑛", "amount": 1718.0, "paid": false, "receipt": false}, {"id": "202薛伊婷", "className": "202", "teacher": "薛伊婷", "amount": 1648.2, "paid": false, "receipt": false}, {"id": "203陳玫霖", "className": "203", "teacher": "陳玫霖", "amount": 1186.8, "paid": false, "receipt": false}, {"id": "204葉怡婷", "className": "204", "teacher": "葉怡婷", "amount": 1826.7, "paid": false, "receipt": false}, {"id": "301陳偉宸", "className": "301", "teacher": "陳偉宸", "amount": 2812.3, "paid": false, "receipt": false}, {"id": "302郭乃萍", "className": "302", "teacher": "郭乃萍", "amount": 3764.7, "paid": false, "receipt": false}, {"id": "303王淑娟", "className": "303", "teacher": "王淑娟", "amount": 894.1, "paid": false, "receipt": false}, {"id": "304邱蘭雅", "className": "304", "teacher": "邱蘭雅", "amount": 865.2, "paid": false, "receipt": false}, {"id": "402歐宏輝", "className": "402", "teacher": "歐宏輝", "amount": 40.2, "paid": false, "receipt": false}, {"id": "403張靜雯", "className": "403", "teacher": "張靜雯", "amount": 4156.0, "paid": false, "receipt": false}, {"id": "404王惠貞", "className": "404", "teacher": "王惠貞", "amount": 692.3, "paid": false, "receipt": false}, {"id": "405蔡小萍", "className": "405", "teacher": "蔡小萍", "amount": 76.5, "paid": false, "receipt": false}, {"id": "501李信河", "className": "501", "teacher": "李信河", "amount": 308.8, "paid": false, "receipt": false}, {"id": "502陳傳文", "className": "502", "teacher": "陳傳文", "amount": 293.0, "paid": false, "receipt": false}, {"id": "504謝錫慧", "className": "504", "teacher": "謝錫慧", "amount": 5178.5, "paid": false, "receipt": false}, {"id": "科任洪文正", "className": "科任", "teacher": "洪文正", "amount": 8176.9, "paid": false, "receipt": false}, {"id": "601郭上慧", "className": "601", "teacher": "郭上慧", "amount": 475.1, "paid": false, "receipt": false}, {"id": "602洪鈺雯", "className": "602", "teacher": "洪鈺雯", "amount": 87.8, "paid": false, "receipt": false}];
+const KEY='copyFee114_data_v1'; const ADMIN_EMAIL='klear302@gmail.com'; let mode='all'; let current=null;
+function load(){ const saved=localStorage.getItem(KEY); if(saved){try{return JSON.parse(saved)}catch(e){}} return seed.map(x=>({...x}));}
+function save(data){localStorage.setItem(KEY,JSON.stringify(data));}
+let data=load();
+function money(n){return 'NT$ '+Number(n).toLocaleString('zh-TW',{minimumFractionDigits:0,maximumFractionDigits:1});}
+function toast(t){let el=document.getElementById('toast');el.textContent=t;el.style.display='block';setTimeout(()=>el.style.display='none',1800)}
+function search(){let q=document.getElementById('q').value.trim(); if(!q){toast('請輸入班級或姓名');return} let item=data.find(x=>x.id.includes(q)||x.teacher.includes(q)||x.className===q); if(!item){toast('查無資料，請確認輸入內容');return} current=item.id; showResult(item);}
+function showResult(item){document.getElementById('result').style.display='block';document.getElementById('rName').textContent=item.id;document.getElementById('rClass').textContent=item.className?`班級：${item.className}`:'科任/其他';document.getElementById('rFee').textContent=money(item.amount);document.getElementById('rReceipt').checked=!!item.receipt;document.getElementById('rStatus').innerHTML=(item.paid?'<span class="pill paid">已繳交</span>':'<span class="pill unpaid">尚未繳交</span>')+(item.receipt?' <span class="pill receipt">需要收據</span>':'');window.scrollTo({top:document.getElementById('result').offsetTop-20,behavior:'smooth'});}
+function openMail(to, subject, body){window.location.href=`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;}
+function sendReceiptEmail(item){
+  const subject=`114學年度影印費收據需求通知 - ${item.id}`;
+  const body=`您好：
+
+${item.id} ${item.teacher} 老師已勾選「需要收據」。
+影印費金額：${money(item.amount)}
+繳費狀態：${item.paid?'已繳交':'尚未繳交'}
+
+此信由影印費查詢系統產生。`;
+  openMail(ADMIN_EMAIL, subject, body);
+}
+function saveReceipt(){if(!current)return; let item=data.find(x=>x.id===current); let before=!!item.receipt; item.receipt=document.getElementById('rReceipt').checked; save(data); showResult(item); toast('已儲存收據需求'); if(item.receipt && !before){sendReceiptEmail(item);} if(document.getElementById('admin').style.display==='block')renderAdmin(mode);}
+function clearResult(){document.getElementById('q').value='';document.getElementById('result').style.display='none';current=null;document.getElementById('q').focus();}
+function showAdminLogin(){let pw=prompt('請輸入後台密碼'); if(pw==='720'){document.getElementById('admin').style.display='block';renderAdmin(mode);setTimeout(()=>document.getElementById('admin').scrollIntoView({behavior:'smooth'}),50)} else if(pw!==null){toast('密碼錯誤')}}
+function renderAdmin(m='all'){mode=m;let rows=m==='receipt'?data.filter(x=>x.receipt):data;let total=data.reduce((s,x)=>s+x.amount,0);let paid=data.filter(x=>x.paid).length;let receipt=data.filter(x=>x.receipt).length;document.getElementById('summary').innerHTML=`<span class="pill receipt">需要收據：${receipt}人</span><span class="pill paid">已繳：${paid}人</span><span class="pill unpaid">未繳：${data.length-paid}人</span><span class="pill">總金額：${money(total)}</span>`;document.getElementById('tbody').innerHTML=rows.map(x=>`<tr><td>${x.id}</td><td>${x.teacher}</td><td>${money(x.amount)}</td><td>${x.paid?'<span class="pill paid">已繳</span>':'<span class="pill unpaid">未繳</span>'}</td><td>${x.receipt?'需要':'不需要'}</td><td class="noPrint"><button class="btn ${x.paid?'danger':'ok'}" onclick="togglePaid('${x.id.replace(/'/g,"\\'")}')">${x.paid?'改未繳':'標記已繳'}</button> <button class="btn light" onclick="toggleReceipt('${x.id.replace(/'/g,"\\'")}')">切換收據</button></td></tr>`).join('')||'<tr><td colspan="6">目前沒有收據需求</td></tr>';}
+function togglePaid(id){let x=data.find(v=>v.id===id);x.paid=!x.paid;save(data);renderAdmin(mode); if(current===id)showResult(x)}
+function toggleReceipt(id){let x=data.find(v=>v.id===id);x.receipt=!x.receipt;save(data);renderAdmin(mode); if(current===id)showResult(x)}
+function emailReceiptList(){
+  const list=data.filter(x=>x.receipt);
+  if(!list.length){toast('目前沒有老師勾選需要收據');return;}
+  const lines=list.map((x,i)=>`${i+1}. ${x.id} ${x.teacher}｜${money(x.amount)}｜${x.paid?'已繳交':'尚未繳交'}`);
+  const subject='114學年度影印費需要收據清單';
+  const body=`您好：
+
+以下為目前勾選需要收據的老師清單：
+
+${lines.join('\n')}
+
+共 ${list.length} 人。
+
+此信由影印費查詢系統後台產生。`;
+  openMail(ADMIN_EMAIL, subject, body);
+}
+function resetAll(){if(confirm('確定清除本機紀錄？將恢復全部未繳、未勾收據。')){localStorage.removeItem(KEY);data=load();renderAdmin(mode);toast('已恢復初始資料')}}
+</script></body></html>
